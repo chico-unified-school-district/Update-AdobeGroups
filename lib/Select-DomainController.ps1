@@ -9,5 +9,5 @@ function Select-DomainController([string[]]$DomainControllers) {
  $msgVars = $MyInvocation.MyCommand.Name, ($DomainControllers -join ',')
  Write-Host ('{0},{1},No Controller is reachalbe at this time. Waiting a bit.' -f $msgVars)
  Start-Sleep 30
- Select-DomainController
+ Select-DomainController $DomainControllers
 }
