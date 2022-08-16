@@ -23,13 +23,13 @@ param(
 
 function Add-GroupMember {
  begin {
-  Write-Host ('{0}' -f $MyInvocation.MyCommand.Name)
+  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
  }
  process {
   $filter = 'employeeId -eq {0}' -f $_.id
   $user = Get-ADUser -Filter $filter
   if ($user) {
-   Write-Verbose ('{0},{1}' -f $MyInvocation.MyCommand.Name, $user.samaccountname)
+   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $user.samaccountname)
    $params = @{
     Identity = $user.ObjectGUID
     MemberOf = $StudentGroup
