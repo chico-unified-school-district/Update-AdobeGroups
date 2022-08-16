@@ -44,7 +44,7 @@ function Add-GroupMember {
 function Connect-ADSession {
  # AD Domain Controller Session
  $adCmdLets = @(
-  'Add-ADGroupMember'
+  'Add-ADPrincipalGroupMembership'
   'Get-ADGroupMember'
   'Get-ADUser'
   'Remove-ADGroupMember'
