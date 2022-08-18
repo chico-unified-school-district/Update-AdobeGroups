@@ -68,7 +68,7 @@ function Remove-GroupMembers {
  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
  Get-ADGroupMember -Identity $StudentGroup |
  ForEach-Object {
-  Remove-ADGroupMember -Identity $StudentGroup $_ -Confirm:$false -WhatIf:$WhatIf
+  Remove-ADGroupMember -Identity $StudentGroup -Members $_.samaccountname -Confirm:$false -WhatIf:$WhatIf
  }
 }
 
