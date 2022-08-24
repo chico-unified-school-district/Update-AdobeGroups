@@ -15,7 +15,7 @@ param(
  [Parameter(Mandatory = $True)]
  [string]$StudentGroup,
  [Parameter(Mandatory = $True)]
- [int[]]$TeacherIDs,
+ [string]$TeacherCoursesJSON,
  [Alias('wi')]
  [switch]$WhatIf
 )
@@ -39,6 +39,10 @@ function Add-GroupMember {
    Add-ADPrincipalGroupMembership @params
   }
  }
+ end {
+  $grpObj = Get-ADGroupMember -Identity $StudentGroup
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $grpObj.count)
+ }
 }
 
 function Connect-ADSession {
@@ -53,22 +57,37 @@ function Connect-ADSession {
  Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber | Out-Null
 }
 
-function Get-Students {
- $sql = (Get-Content -Path .\sql\AdobeStudents.sql -Raw) -f ($TeacherIDs -join ',')
- $params = @{
-  Server     = $SISServer
-  Database   = $SISDatabase
-  Credential = $SISCredential
-  Query      = $sql
- }
- Invoke-Sqlcmd @params
-}
-
 function Remove-GroupMembers {
  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
  Get-ADGroupMember -Identity $StudentGroup |
  ForEach-Object {
   Remove-ADGroupMember -Identity $StudentGroup -Members $_.samaccountname -Confirm:$false -WhatIf:$WhatIf
+ }
+}
+function Get-jSonData ($obj) {
+ $propNames = ($obj.teachers | Get-Member -MemberType NoteProperty | Select-Object Name).name
+ foreach ($name in $propNames) {
+  $obj.teachers.$name
+ }
+}
+
+function Get-SamidsFromSql {
+ begin {
+  'SqlServer' | Load-Module
+  $sisParams = @{
+   Server     = $SISServer
+   Database   = $SISDatabase
+   Credential = $SISCredential
+  }
+  $baseSql = Get-Content -Raw -Path .\sql\AdobeStudents.sql
+ }
+ process {
+  $courseNums = ($_.course -join ',')
+  $sql = $baseSql -f $_.id, $courseNums
+  Write-Host ('{0},[{1}],[{2}],[{3}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $courseNums)
+  $ids = Invoke-Sqlcmd @sisParams -Query $sql
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, $ids.count)
+  $ids
  }
 }
 
@@ -79,15 +98,11 @@ function Remove-GroupMembers {
 
 Show-TestRun
 
-'SQLServer' | Load-Module
 $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
 Remove-GroupMembers
-
-$stus = Get-Students
-$stus.count
-$stus | Add-GroupMember
-$stus.id -join ','
+$courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
+$courseInfo | Get-SamidsFromSql | Add-GroupMember
 
 Show-TestRun

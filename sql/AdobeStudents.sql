@@ -31,5 +31,5 @@ ON [MST].[sc] = [SSE].[sc]
  ON [STF].[id] = [SSE].[id]
 WHERE
 ( NOT STU.tg > ' ' )
-AND (SSE.ID IN ({0}))
+AND (SSE.ID = ({0}) AND MST.SE IN ({1}))
 ORDER BY STU.ID

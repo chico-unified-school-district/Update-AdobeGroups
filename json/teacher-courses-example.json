@@ -1,0 +1,9 @@
+{
+ "teachers":{
+  "teacher1":{
+   "name":"Scott Teacher",
+   "id":10,
+   "course":[1111,2222,3333]
+  }
+ }
+}
