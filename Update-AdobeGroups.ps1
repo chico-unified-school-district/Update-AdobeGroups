@@ -132,9 +132,9 @@ Show-TestRun
 $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
-# Remove-GroupMembers
-# $courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
-# $courseInfo | Get-SamidsFromJson | Add-GroupMember
+Remove-GroupMembers
+$courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
+$courseInfo | Get-SamidsFromJson | Add-GroupMember
 Get-SiteQueryFiles | New-QueryObject | Get-SamidsFromSql | Add-GroupMember
 
 Show-TestRun
