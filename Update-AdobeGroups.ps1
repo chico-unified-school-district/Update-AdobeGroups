@@ -20,7 +20,6 @@ param(
  [switch]$WhatIf
 )
 
-
 function Add-GroupMember {
  begin {
   Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
@@ -71,7 +70,7 @@ function Get-jSonData ($obj) {
  }
 }
 
-function Get-SamidsFromSql {
+function Get-SamidsFromJson {
  begin {
   'SqlServer' | Load-Module
   $sisParams = @{
@@ -91,6 +90,38 @@ function Get-SamidsFromSql {
  }
 }
 
+function Get-SiteQueryFiles {
+ Get-ChildItem -Path .\sql\SiteQueries -Filter *.Sql
+}
+
+function New-QueryObject {
+ process {
+  # $_
+  New-Object PSObject -Property @{
+   fileName = $_.name
+   SqlCmd   = ( $_ | Get-Content -Raw )
+  }
+ }
+}
+
+function Get-SamidsFromSql {
+ begin {
+  'SqlServer' | Load-Module
+  $sisParams = @{
+   Server     = $SISServer
+   Database   = $SISDatabase
+   Credential = $SISCredential
+  }
+ }
+ process {
+  $sql = $_.SqlCmd
+  Write-Host ('{0}' -f $MyInvocation.MyCommand.Name, $_.fileName)
+  $ids = Invoke-Sqlcmd @sisParams -Query $sql
+  Write-Host ('{0},{1},Total: {2}' -f $MyInvocation.MyCommand.Name, $_.fileName, $ids.count)
+  $ids
+ }
+}
+
 # main
 . .\lib\Load-Module.ps1
 . .\lib\Select-DomainController.ps1
@@ -101,8 +132,9 @@ Show-TestRun
 $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
-Remove-GroupMembers
-$courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
-$courseInfo | Get-SamidsFromSql | Add-GroupMember
+# Remove-GroupMembers
+# $courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
+# $courseInfo | Get-SamidsFromJson | Add-GroupMember
+Get-SiteQueryFiles | New-QueryObject | Get-SamidsFromSql | Add-GroupMember
 
 Show-TestRun
