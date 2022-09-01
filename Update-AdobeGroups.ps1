@@ -78,46 +78,16 @@ function Get-SamidsFromJson {
    Database   = $SISDatabase
    Credential = $SISCredential
   }
-  $baseSql = Get-Content -Raw -Path .\sql\AdobeStudents.sql
+  $regularSceduleSql = Get-Content -Raw -Path .\sql\RegularSchedule.sql
+  $blockScheduleSql = Get-Content -Raw -Path .\sql\BlockSchedule.sql
  }
  process {
   $courseNums = ($_.course -join ',')
-  $sql = $baseSql -f $_.id, $courseNums
-  Write-Host ('{0},[{1}],[{2}],[{3}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $courseNums)
+  if ($_.type -eq "regular") { $sql = $regularSceduleSql -f $_.id, $courseNums }
+  if ($_.type -eq "block") { $sql = $blockScheduleSql -f $_.id, $courseNums }
+  Write-Host ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, $courseNums)
   $ids = Invoke-Sqlcmd @sisParams -Query $sql
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, $ids.count)
-  $ids
- }
-}
-
-function Get-SiteQueryFiles {
- Get-ChildItem -Path .\sql\SiteQueries -Filter *.Sql
-}
-
-function New-QueryObject {
- process {
-  # $_
-  New-Object PSObject -Property @{
-   fileName = $_.name
-   SqlCmd   = ( $_ | Get-Content -Raw )
-  }
- }
-}
-
-function Get-SamidsFromSql {
- begin {
-  'SqlServer' | Load-Module
-  $sisParams = @{
-   Server     = $SISServer
-   Database   = $SISDatabase
-   Credential = $SISCredential
-  }
- }
- process {
-  $sql = $_.SqlCmd
-  Write-Host ('{0}' -f $MyInvocation.MyCommand.Name, $_.fileName)
-  $ids = Invoke-Sqlcmd @sisParams -Query $sql
-  Write-Host ('{0},{1},Total: {2}' -f $MyInvocation.MyCommand.Name, $_.fileName, $ids.count)
   $ids
  }
 }
@@ -132,9 +102,8 @@ Show-TestRun
 $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
-Remove-GroupMembers
+# Remove-GroupMembers
 $courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
 $courseInfo | Get-SamidsFromJson | Add-GroupMember
-Get-SiteQueryFiles | New-QueryObject | Get-SamidsFromSql | Add-GroupMember
 
 Show-TestRun
