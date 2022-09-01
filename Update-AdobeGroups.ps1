@@ -85,7 +85,7 @@ function Get-SamidsFromJson {
   $courseNums = ($_.course -join ',')
   if ($_.type -eq "regular") { $sql = $regularSceduleSql -f $_.id, $courseNums }
   if ($_.type -eq "block") { $sql = $blockScheduleSql -f $_.id, $courseNums }
-  Write-Host ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, $courseNums)
+  Write-Verbose ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, $courseNums)
   $ids = Invoke-Sqlcmd @sisParams -Query $sql
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, $ids.count)
   $ids
