@@ -63,7 +63,7 @@ function Remove-GroupMembers {
   Remove-ADGroupMember -Identity $StudentGroup -Members $_.samaccountname -Confirm:$false -WhatIf:$WhatIf
  }
 }
-function Get-jSonData ($obj) {
+function Get-jsonData ($obj) {
  $propNames = ($obj.teachers | Get-Member -MemberType NoteProperty | Select-Object Name).name
  foreach ($name in $propNames) {
   $obj.teachers.$name
@@ -103,7 +103,7 @@ $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
 Remove-GroupMembers
-$jsonData = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
+$jsonData = Get-jsonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
 $jsonData | Get-SamidsFromJson | Add-GroupMember
 
 Show-TestRun
