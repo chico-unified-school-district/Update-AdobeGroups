@@ -103,7 +103,7 @@ $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
 Remove-GroupMembers
-$courseInfo = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
-$courseInfo | Get-SamidsFromJson | Add-GroupMember
+$jsonData = Get-jSonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
+$jsonData | Get-SamidsFromJson | Add-GroupMember
 
 Show-TestRun
