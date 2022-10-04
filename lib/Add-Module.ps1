@@ -5,7 +5,7 @@ function Add-Module {
    $install = @{
     Scope              = 'CurrentUser'
     AllowClobber       = $true
-    AcceptLicense      = $true
+    # AcceptLicense      = $true
     SkipPublisherCheck = $true
     Confirm            = $false
     Force              = $true
