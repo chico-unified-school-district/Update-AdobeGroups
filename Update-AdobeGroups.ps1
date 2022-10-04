@@ -72,7 +72,7 @@ function Get-jsonData ($obj) {
 
 function Get-SamidsFromJson {
  begin {
-  'SqlServer' | Load-Module
+  'SqlServer' | Add-Module
   $sisParams = @{
    Server     = $SISServer
    Database   = $SISDatabase
@@ -93,7 +93,7 @@ function Get-SamidsFromJson {
 }
 
 # main
-. .\lib\Load-Module.ps1
+. .\lib\Add-Module.ps1
 . .\lib\Select-DomainController.ps1
 . .\lib\Show-TestRun.ps1
 
