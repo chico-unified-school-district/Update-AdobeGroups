@@ -16,6 +16,7 @@ param(
  [string]$StudentGroup,
  [Parameter(Mandatory = $True)]
  [string]$TeacherCoursesJSON,
+ [switch]$ClearGroup,
  [Alias('wi')]
  [switch]$WhatIf
 )
@@ -102,7 +103,7 @@ Show-TestRun
 $dc = Select-DomainController $DomainControllers
 Connect-ADSession
 
-Remove-GroupMembers
+if ($ClearGroup) { Remove-GroupMembers }
 $jsonData = Get-jsonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
 $jsonData | Get-SamidsFromJson | Add-GroupMember
 
