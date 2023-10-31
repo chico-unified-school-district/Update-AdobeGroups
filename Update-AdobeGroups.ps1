@@ -75,9 +75,10 @@ function Get-SamidsFromJson {
  begin {
   'SqlServer' | Add-Module
   $sisParams = @{
-   Server     = $SISServer
-   Database   = $SISDatabase
-   Credential = $SISCredential
+   Server                 = $SISServer
+   Database               = $SISDatabase
+   Credential             = $SISCredential
+   TrustServerCertificate = $true
   }
   $regularSceduleSql = Get-Content -Raw -Path .\sql\RegularSchedule.sql
   $blockScheduleSql = Get-Content -Raw -Path .\sql\BlockSchedule.sql
