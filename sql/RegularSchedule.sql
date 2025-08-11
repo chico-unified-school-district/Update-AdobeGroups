@@ -1,3 +1,6 @@
+-- Temp IDs Table
+ CREATE TABLE #TempAdobeUserIdList (id INT);
+ INSERT INTO #TempAdobeUserIdList (id) VALUES MY_VALUES;
 -- Regular Schedule
 SELECT
 	[STU].[ID], [MST].[SE], [TCH].[TE], [TCH].[TN]
@@ -16,5 +19,5 @@ WHERE
 	(NOT STU.TG > ' ') AND
 	-- This SQL will not run natively.
 	-- {0} and {1} are replaced with Teacher ID and Section number(s).
-	( [TCH].[ID] = {0} AND [SEC].[SE] IN ({1}))
+	( [TCH].[ID] = @id AND [SEC].[SE] IN (SELECT id FROM #TempAdobeUserIdList))
 ORDER BY [STU].[LN], [STU].[FN];

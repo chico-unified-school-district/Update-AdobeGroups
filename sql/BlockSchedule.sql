@@ -1,3 +1,6 @@
+-- Temp IDs Table
+ CREATE TABLE #TempAdobeUserIdList (id INT);
+ INSERT INTO #TempAdobeUserIdList (id) VALUES MY_VALUES;
 -- Block Schedule
 SELECT DISTINCT STU.ID
 FROM   (SELECT [stf].*
@@ -27,5 +30,5 @@ WHERE
 ( NOT STU.tg > ' ' )
 -- This SQL will not run natively.
 -- {0} and {1} are replaced with Teacher ID and Section number(s).
-AND (SSE.ID = ({0}) AND MST.SE IN ({1}))
+AND (SSE.ID = @id AND MST.SE IN (SELECT id FROM #TempAdobeUserIdList))
 ORDER BY STU.ID

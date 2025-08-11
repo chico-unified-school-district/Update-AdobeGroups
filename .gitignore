@@ -33,3 +33,5 @@ notes.ps1
 /jenkins.ps1
 /json/teacher-courses.json
 /sql/SiteQueries/Fairview.sql
+/params.ps1
+/json/teacher-courses copy.json

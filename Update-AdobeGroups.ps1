@@ -26,10 +26,11 @@ function Add-GroupMember {
   Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
  }
  process {
+  if (!$_.id) { return }
   $filter = 'employeeId -eq {0}' -f $_.id
   $user = Get-ADUser -Filter $filter
   if ($user) {
-   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $user.samaccountname)
+   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $user.SamAccountName)
    $params = @{
     Identity = $user.ObjectGUID
     MemberOf = $StudentGroup
@@ -41,29 +42,18 @@ function Add-GroupMember {
  }
  end {
   $grpObj = Get-ADGroupMember -Identity $StudentGroup
-  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $grpObj.count)
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, @($grpObj).count)
  }
-}
-
-function Connect-ADSession {
- # AD Domain Controller Session
- $adCmdLets = @(
-  'Add-ADPrincipalGroupMembership'
-  'Get-ADGroupMember'
-  'Get-ADUser'
-  'Remove-ADGroupMember'
- )
- $adSession = New-PSSession -ComputerName $dc -Credential $ADCredential
- Import-PSSession -Session $adSession -Module ActiveDirectory -CommandName $adCmdLets -AllowClobber | Out-Null
 }
 
 function Remove-GroupMembers {
  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
  Get-ADGroupMember -Identity $StudentGroup |
- ForEach-Object {
-  Remove-ADGroupMember -Identity $StudentGroup -Members $_.samaccountname -Confirm:$false -WhatIf:$WhatIf
- }
+  ForEach-Object {
+   Remove-ADGroupMember -Identity $StudentGroup -Members $_.SamAccountName -Confirm:$false -WhatIf:$WhatIf
+  }
 }
+
 function Get-jsonData ($obj) {
  $propNames = ($obj.teachers | Get-Member -MemberType NoteProperty | Select-Object Name).name
  foreach ($name in $propNames) {
@@ -73,39 +63,40 @@ function Get-jsonData ($obj) {
 
 function Get-SamidsFromJson {
  begin {
-  'SqlServer' | Add-Module
   $sisParams = @{
-   Server                 = $SISServer
-   Database               = $SISDatabase
-   Credential             = $SISCredential
-   TrustServerCertificate = $true
+   Server     = $SISServer
+   Database   = $SISDatabase
+   Credential = $SISCredential
   }
-  $regularSceduleSql = Get-Content -Raw -Path .\sql\RegularSchedule.sql
-  $blockScheduleSql = Get-Content -Raw -Path .\sql\BlockSchedule.sql
+  $regularScheduleSql = Get-Content -Raw -Path '.\sql\RegularSchedule.sql'
+  $blockScheduleSql = Get-Content -Raw -Path '.\sql\BlockSchedule.sql'
  }
  process {
-  $courseNums = ($_.course -join ',')
-  if ($_.type -eq "regular") { $sql = $regularSceduleSql -f $_.id, $courseNums }
-  if ($_.type -eq "block") { $sql = $blockScheduleSql -f $_.id, $courseNums }
-  Write-Verbose ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, $courseNums)
-  $ids = Invoke-Sqlcmd @sisParams -Query $sql
-  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, $ids.count)
+  Write-Host $_.name -F Green
+  $baseSql = if ($_.type -eq "regular") { $regularScheduleSql } elseif ($_.type -eq "block") { $blockScheduleSql }
+  $myValues = '(' + ($_.course -join '),(') + ')'
+  $sql = $baseSql -replace ('MY_VALUES', $myValues)
+
+  Write-Verbose ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ','))
+
+  $ids = New-SqlOperation @sisParams -Query $sql -Parameters ("id=$($_.id)")
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, @($ids).count)
   $ids
  }
 }
+# ============================================================================================
 
-# main
-. .\lib\Add-Module.ps1
-. .\lib\Select-DomainController.ps1
-. .\lib\Show-TestRun.ps1
+Import-Module -Name CommonScriptFunctions, dbatools
 
-Show-TestRun
+Show-BlockInfo main
+if ($WhatIf) { Show-TestRun }
 
-$dc = Select-DomainController $DomainControllers
-Connect-ADSession
+$adCmdLets = 'Add-ADPrincipalGroupMembership', 'Get-ADGroupMember', 'Get-ADUser', 'Remove-ADGroupMember'
+Connect-ADSession -DomainControllers $DomainControllers -Cmdlets $adCmdLets -Credential $ADCredential
 
 if ($ClearGroup) { Remove-GroupMembers }
 $jsonData = Get-jsonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
 $jsonData | Get-SamidsFromJson | Add-GroupMember
 
-Show-TestRun
+if ($WhatIf) { Show-TestRun }
+Show-BlockInfo end
