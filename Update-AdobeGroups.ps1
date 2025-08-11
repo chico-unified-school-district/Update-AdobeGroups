@@ -21,28 +21,32 @@ param(
  [switch]$WhatIf
 )
 
-function Add-GroupMember {
- begin {
-  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
- }
+
+function Get-ADStudent {
+ begin { $objGUIDS = @() }
  process {
-  if (!$_.id) { return }
-  $filter = 'employeeId -eq {0}' -f $_.id
-  $user = Get-ADUser -Filter $filter
+  if (!$_) { return }
+  $filter = 'employeeId -eq {0}' -f $_
+  $adObj = Get-ADUser -Filter $filter
+  if ($adObj) {
+   Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $adObj.SamAccountName) -F Green
+   # Keep adding Guids for all teachers and courses until they are all in the array
+   $objGUIDS += $adObj.ObjectGUID.Guid
+  }
+ }
+ end { $objGUIDS }
+}
+
+function Add-GroupMembers ($group) {
+ process {
   if ($user) {
-   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, $user.SamAccountName)
-   $params = @{
-    Identity = $user.ObjectGUID
-    MemberOf = $StudentGroup
-    Confirm  = $false
-    WhatIf   = $WhatIf
-   }
-   Add-ADPrincipalGroupMembership @params
+   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
+   Add-ADGroupMember -Identity $group -Members $_ -Confirm:$false -WhatIf:$WhatIf
   }
  }
  end {
   $grpObj = Get-ADGroupMember -Identity $StudentGroup
-  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, @($grpObj).count)
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, @($grpObj).count) -F Green
  }
 }
 
@@ -61,42 +65,42 @@ function Get-jsonData ($obj) {
  }
 }
 
-function Get-SamidsFromJson {
+function Get-PermIdsFromJson ($params) {
  begin {
-  $sisParams = @{
-   Server     = $SISServer
-   Database   = $SISDatabase
-   Credential = $SISCredential
-  }
   $regularScheduleSql = Get-Content -Raw -Path '.\sql\RegularSchedule.sql'
   $blockScheduleSql = Get-Content -Raw -Path '.\sql\BlockSchedule.sql'
  }
  process {
-  Write-Host $_.name -F Green
   $baseSql = if ($_.type -eq "regular") { $regularScheduleSql } elseif ($_.type -eq "block") { $blockScheduleSql }
   $myValues = '(' + ($_.course -join '),(') + ')'
   $sql = $baseSql -replace ('MY_VALUES', $myValues)
 
   Write-Verbose ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ','))
 
-  $ids = New-SqlOperation @sisParams -Query $sql -Parameters ("id=$($_.id)")
-  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, @($ids).count)
-  $ids
+  $ids = New-SqlOperation @params -Query $sql -Parameters ("id=$($_.id)")
+  Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, @($ids).count) -F Blue
+  $ids.ID
  }
 }
 # ============================================================================================
 
 Import-Module -Name CommonScriptFunctions, dbatools
 
-Show-BlockInfo main
+Show-BlockInfo start
 if ($WhatIf) { Show-TestRun }
 
 $adCmdLets = 'Add-ADPrincipalGroupMembership', 'Get-ADGroupMember', 'Get-ADUser', 'Remove-ADGroupMember'
 Connect-ADSession -DomainControllers $DomainControllers -Cmdlets $adCmdLets -Credential $ADCredential
 
+$sisParams = @{
+ Server     = $SISServer
+ Database   = $SISDatabase
+ Credential = $SISCredential
+}
+
 if ($ClearGroup) { Remove-GroupMembers }
 $jsonData = Get-jsonData (Get-Content -Path $TeacherCoursesJSON -Raw | ConvertFrom-Json)
-$jsonData | Get-SamidsFromJson | Add-GroupMember
+$jsonData | Get-PermIdsFromJson $sisParams | Get-ADStudent | Add-GroupMembers $StudentGroup
 
 if ($WhatIf) { Show-TestRun }
 Show-BlockInfo end
