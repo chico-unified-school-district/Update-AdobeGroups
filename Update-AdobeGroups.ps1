@@ -75,7 +75,7 @@ function Get-PermIdsFromJson ($params) {
   $myValues = '(' + ($_.course -join '),(') + ')'
   $sql = $baseSql -replace ('MY_VALUES', $myValues)
 
-  Write-Verbose ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ','))
+  Write-Host ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ',')) -F Magenta
 
   $ids = New-SqlOperation @params -Query $sql -Parameters ("id=$($_.id)")
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, @($ids).count) -F Blue
