@@ -39,7 +39,7 @@ function Add-GroupMembers ($group) {
   }
  }
  end {
-  Add-ADGroupMember -Identity $group -Members $members -Credential $ADTasks -Confirm:$false -WhatIf:$WhatIf
+  Add-ADGroupMember -Identity $group -Members $members -Confirm:$false -WhatIf:$WhatIf
   $grpObj = Get-ADGroupMember -Identity $StudentGroup
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, @($grpObj).count) -F Green
  }
@@ -49,7 +49,7 @@ function Remove-GroupMembers {
  Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup) -F Magenta
  $memberSams = (Get-ADGroupMember -Identity $StudentGroup | Select-Object -Property SamAccountName).SamAccountName
  if ($null -eq $memberSams) { return }
- Remove-ADGroupMember -Identity $StudentGroup -Members $memberSams -Credential $ADTasks -Confirm:$false -WhatIf:$WhatIf
+ Remove-ADGroupMember -Identity $StudentGroup -Members $memberSams -Confirm:$false -WhatIf:$WhatIf
 }
 
 function Get-jsonData ($obj) {
