@@ -84,7 +84,7 @@ Show-BlockInfo start
 if ($WhatIf) { Show-TestRun }
 
 Clear-SessionData
-$adCmdLets = 'Add-ADPrincipalGroupMembership', 'Get-ADGroupMember', 'Get-ADUser', 'Remove-ADGroupMember'
+$adCmdLets = 'Add-ADPrincipalGroupMembership', 'Get-ADGroupMember', 'Get-ADUser', 'Add-ADGroupMember', 'Remove-ADGroupMember'
 Connect-ADSession -DomainControllers $DomainControllers -Cmdlets $adCmdLets -Credential $ADCredential
 
 $sisParams = @{
