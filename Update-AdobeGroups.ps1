@@ -23,39 +23,33 @@ param(
 
 
 function Get-ADStudent {
- begin { $objGUIDS = @() }
  process {
   if (!$_) { return }
   $filter = 'employeeId -eq {0}' -f $_
-  $adObj = Get-ADUser -Filter $filter
-  if ($adObj) {
-   Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $adObj.SamAccountName) -F Green
-   # Keep adding Guids for all teachers and courses until they are all in the array
-   $objGUIDS += $adObj.ObjectGUID.Guid
-  }
+  Get-ADUser -Filter $filter
  }
- end { $objGUIDS }
 }
 
 function Add-GroupMembers ($group) {
+ begin { $members = @() }
  process {
-  if ($user) {
-   Write-Verbose ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
-   Add-ADGroupMember -Identity $group -Members $_ -Confirm:$false -WhatIf:$WhatIf
+  if ($_) {
+   Write-Host ('{0},{1},{2}' -f $MyInvocation.MyCommand.Name, $group, $_.SamAccountName) -F Green
+   $members += $_.ObjectGUID.Guid
   }
  }
  end {
+  Add-ADGroupMember -Identity $group -Members $members -Credential $ADTasks -Confirm:$false -WhatIf:$WhatIf
   $grpObj = Get-ADGroupMember -Identity $StudentGroup
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $StudentGroup, @($grpObj).count) -F Green
  }
 }
 
 function Remove-GroupMembers {
- Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup)
- Get-ADGroupMember -Identity $StudentGroup |
-  ForEach-Object {
-   Remove-ADGroupMember -Identity $StudentGroup -Members $_.SamAccountName -Confirm:$false -WhatIf:$WhatIf
-  }
+ Write-Host ('{0},{1}' -f $MyInvocation.MyCommand.Name, $StudentGroup) -F Magenta
+ $memberSams = (Get-ADGroupMember -Identity $StudentGroup | Select-Object -Property SamAccountName).SamAccountName
+ if ($null -eq $memberSams) { return }
+ Remove-ADGroupMember -Identity $StudentGroup -Members $memberSams -Credential $ADTasks -Confirm:$false -WhatIf:$WhatIf
 }
 
 function Get-jsonData ($obj) {
@@ -75,7 +69,7 @@ function Get-PermIdsFromJson ($params) {
   $myValues = '(' + ($_.course -join '),(') + ')'
   $sql = $baseSql -replace ('MY_VALUES', $myValues)
 
-  Write-Host ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ',')) -F Magenta
+  Write-Host ('{0},[{1}],[{2}],[{3}],[{4}]' -f $MyInvocation.MyCommand.Name, $_.id, $_.name, $_.type, ($_.course -join ',')) -F DarkGreen
 
   $ids = New-SqlOperation @params -Query $sql -Parameters ("id=$($_.id)")
   Write-Host ('{0},[{1}],Total: {2}' -f $MyInvocation.MyCommand.Name, $_.name, @($ids).count) -F Blue
@@ -89,6 +83,7 @@ Import-Module -Name CommonScriptFunctions, dbatools
 Show-BlockInfo start
 if ($WhatIf) { Show-TestRun }
 
+Clear-SessionData
 $adCmdLets = 'Add-ADPrincipalGroupMembership', 'Get-ADGroupMember', 'Get-ADUser', 'Remove-ADGroupMember'
 Connect-ADSession -DomainControllers $DomainControllers -Cmdlets $adCmdLets -Credential $ADCredential
 
